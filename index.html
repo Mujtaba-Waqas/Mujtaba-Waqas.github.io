@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Professional portfolio of Mujtaba Waqas, a QAMO student at the University of Utah.">
+  <title>Mujtaba Waqas | Portfolio</title>
+  <style>
+    :root {
+      --navy: #102a43;
+      --blue: #2563eb;
+      --light: #f5f7fb;
+      --white: #ffffff;
+      --text: #243b53;
+      --muted: #627d98;
+      --border: #d9e2ec;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background: var(--white);
+      line-height: 1.6;
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--navy);
+      padding: 0.9rem 5%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    nav .brand { color: var(--white); font-weight: 700; text-decoration: none; }
+    nav .links { display: flex; flex-wrap: wrap; gap: 1rem; }
+    nav .links a { color: #d9e2ec; text-decoration: none; font-size: 0.95rem; }
+    nav .links a:hover { color: var(--white); }
+
+    header {
+      background: linear-gradient(135deg, var(--navy), #1d4ed8);
+      color: var(--white);
+      padding: 5.5rem 5% 5rem;
+    }
+
+    header .content, main { width: min(1100px, 100%); margin: auto; }
+    header p:first-child { margin: 0 0 0.5rem; color: #bfdbfe; font-weight: 700; }
+    h1 { font-size: clamp(2.4rem, 6vw, 4.5rem); line-height: 1.05; margin: 0 0 1rem; }
+    header .title { max-width: 780px; font-size: 1.15rem; color: #e6efff; }
+
+    .button {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.7rem 1rem;
+      border-radius: 6px;
+      background: var(--white);
+      color: var(--navy);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    main { padding: 1rem 5% 4rem; }
+    section { padding: 3.5rem 0; border-bottom: 1px solid var(--border); }
+    section:last-child { border-bottom: 0; }
+    h2 { color: var(--navy); font-size: 2rem; margin: 0 0 1rem; }
+    .about { max-width: 850px; }
+
+    .skills { display: flex; flex-wrap: wrap; gap: 0.65rem; }
+    .skill {
+      background: var(--light);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.45rem 0.8rem;
+      font-size: 0.95rem;
+    }
+
+    .project-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      background: var(--white);
+      box-shadow: 0 5px 18px rgba(16, 42, 67, 0.06);
+    }
+    .card h3 { color: var(--navy); margin: 0 0 0.5rem; }
+    .card p { margin: 0; color: var(--muted); }
+
+    .contact-links { display: flex; flex-wrap: wrap; gap: 0.8rem; }
+    .contact-links a {
+      color: var(--blue);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    footer { background: var(--navy); color: #d9e2ec; text-align: center; padding: 1.5rem; }
+
+    @media (max-width: 700px) {
+      nav { align-items: flex-start; flex-direction: column; }
+      header { padding-top: 4rem; }
+      .project-grid { grid-template-columns: 1fr; }
+      section { padding: 2.5rem 0; }
+    }
+  </style>
+</head>
+<body>
+  <nav aria-label="Main navigation">
+    <a class="brand" href="#top">Mujtaba Waqas</a>
+    <div class="links">
+      <a href="#about">About</a>
+      <a href="#skills">Skills</a>
+      <a href="#projects">Projects</a>
+      <a href="#resume">Resume</a>
+      <a href="#contact">Contact</a>
+    </div>
+  </nav>
+
+  <header id="top">
+    <div class="content">
+      <p>University of Utah | David Eccles School of Business</p>
+      <h1>Mujtaba Waqas</h1>
+      <p class="title">QAMO Student | Operations &amp; Supply Chain | Information Systems and Business AI</p>
+      <a class="button" href="#projects">View My Projects</a>
+    </div>
+  </header>
+
+  <main>
+    <section id="about">
+      <h2>About Me</h2>
+      <p class="about">I am pursuing a Bachelor of Science in Quantitative Analysis of Markets and Organizations (QAMO) at the University of Utah, with an emphasis in Operations and Supply Chain and minors in Information Systems and Business AI. I am interested in using data, artificial intelligence, and information systems to improve business processes, supply chains, and managerial decision-making. My technical interests include Python, statistical analysis, data visualization, Excel, e-commerce, and AI-assisted business analysis. Through academic projects, I have used data to study cricket performance and collegiate gymnastics, building visualizations, hypothesis tests, and regression models. I hope to develop a career that combines quantitative analysis, operations, technology, and practical problem-solving to help organizations make faster and better-informed decisions.</p>
+    </section>
+
+    <section id="skills">
+      <h2>Skills</h2>
+      <div class="skills">
+        <span class="skill">Python</span><span class="skill">Java</span>
+        <span class="skill">Pandas</span><span class="skill">NumPy</span>
+        <span class="skill">Matplotlib</span><span class="skill">Seaborn</span>
+        <span class="skill">Microsoft Excel</span><span class="skill">Jupyter Notebook</span>
+        <span class="skill">Statistical Analysis</span><span class="skill">Data Visualization</span>
+        <span class="skill">Regression Analysis</span><span class="skill">HTML &amp; CSS</span>
+        <span class="skill">Git &amp; GitHub</span><span class="skill">AI Prompt Engineering</span>
+        <span class="skill">Shopify</span><span class="skill">Process Improvement</span>
+      </div>
+    </section>
+
+    <section id="projects">
+      <h2>Projects</h2>
+      <div class="project-grid">
+        <article class="card">
+          <h3>Cricket Batting Performance Analysis</h3>
+          <p>Used Python, visualizations, hypothesis testing, and regression to analyze strike rate and batting performance.</p>
+        </article>
+        <article class="card">
+          <h3>NC State Gymnastics Analysis</h3>
+          <p>Analyzed event strengths and season trends using grouped data, correlations, descriptive statistics, and charts.</p>
+        </article>
+        <article class="card">
+          <h3>Accessory Arcade E-Commerce Store</h3>
+          <p>Built and managed a Shopify store to support product sales, digital branding, and customer engagement.</p>
+        </article>
+        <article class="card">
+          <h3>KPMG Business Technology Project</h3>
+          <p>Coming soon: an IS 3060 consulting project focused on analytics, AI, information systems, and business value.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="resume">
+      <h2>Resume</h2>
+      <p>View my education, experience, technical skills, and projects.</p>
+      <a class="button" href="Mujtaba_Waqas_Resume.pdf" download>Download Resume</a>
+    </section>
+
+    <section id="contact">
+      <h2>Contact</h2>
+      <div class="contact-links">
+        <!-- Replace this email with your University of Utah email if required. -->
+        <a href="mailto:mujtabawaqas2006@gmail.com">mujtabawaqas2006@gmail.com</a>
+        <a href="https://github.com/Mujtaba-Waqas" target="_blank" rel="noopener">GitHub Profile</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>Professional Portfolio | Mujtaba Waqas</footer>
+</body>
+</html>
