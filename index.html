@@ -96,7 +96,8 @@
     .card h3 a { color: inherit; text-decoration: none; }
     .card h3 a:hover { text-decoration: underline; }
     .card p { margin: 0; color: var(--muted); }
-    .card .meta { display: block; margin-top: 0.6rem; font-size: 0.85rem; color: var(--blue); font-weight: 700; }
+    .card .meta { display: inline-block; margin-top: 0.6rem; font-size: 0.85rem; color: var(--blue); font-weight: 700; text-decoration: none; cursor: pointer; }
+    .card .meta:hover { text-decoration: underline; }
 
     .resume-box {
       display: flex;
@@ -173,14 +174,14 @@
       <h2>Projects</h2>
       <div class="project-grid">
         <article class="card">
-          <h3><a href="https://github.com/Mujtaba-Waqas/cricket-batting-analysis" target="_blank" rel="noopener">Cricket Batting Performance Analysis</a></h3>
+          <h3>Cricket Batting Performance Analysis</h3>
           <p>Analyzed 1,000+ innings of ODI batting data in Python (Pandas, NumPy) to quantify what drives strike rate and batting average — built groupby/crosstab summaries, a hypothesis test, and two linear regressions, and showed India's mean strike rate exceeds Pakistan's at the 5% significance level.</p>
-          <span class="meta">View on GitHub →</span>
+          <a class="meta" href="https://github.com/Mujtaba-Waqas/cricket-batting-analysis" target="_blank" rel="noopener">View on GitHub →</a>
         </article>
         <article class="card">
-          <h3><a href="https://mujtaba-waqas.github.io/regulars-demo/" target="_blank" rel="noopener">Client Messaging Automation Platform (SaaS)</a></h3>
+          <h3>Client Messaging Automation Platform (SaaS)</h3>
           <p>Designing and building an SMS/email automation tool for small businesses — win-back campaigns, review & referral requests, and appointment reminders. Built and demoed a live pitch site to gyms, retailers, and restaurants across Salt Lake City.</p>
-          <span class="meta">View live demo →</span>
+          <a class="meta" href="https://mujtaba-waqas.github.io/regulars-demo/" target="_blank" rel="noopener">View live demo →</a>
         </article>
         <article class="card">
           <h3>Java Image Processor GUI — CS 1410 Final Project</h3>
