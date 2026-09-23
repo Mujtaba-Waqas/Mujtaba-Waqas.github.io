@@ -93,7 +93,22 @@
       box-shadow: 0 5px 18px rgba(16, 42, 67, 0.06);
     }
     .card h3 { color: var(--navy); margin: 0 0 0.5rem; }
+    .card h3 a { color: inherit; text-decoration: none; }
+    .card h3 a:hover { text-decoration: underline; }
     .card p { margin: 0; color: var(--muted); }
+    .card .meta { display: block; margin-top: 0.6rem; font-size: 0.85rem; color: var(--blue); font-weight: 700; }
+
+    .resume-box {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      background: var(--light);
+    }
+    .resume-box p { margin: 0; color: var(--muted); max-width: 520px; }
 
     .contact-links { display: flex; flex-wrap: wrap; gap: 0.8rem; }
     .contact-links a {
@@ -101,6 +116,7 @@
       font-weight: 700;
       text-decoration: none;
     }
+    .contact-links a:hover { text-decoration: underline; }
 
     footer { background: var(--navy); color: #d9e2ec; text-align: center; padding: 1.5rem; }
 
@@ -154,31 +170,61 @@
     </section>
 
     <section id="projects">
-  <h2>Projects</h2>
-  <div class="project-grid">
-    <article class="card">
-      <h3>Cricket Batting Performance Analysis</h3>
-      <p>Analyzed 1,000+ innings of Cricsheet match data in Python (Pandas, NumPy) to quantify what drives strike rate and batting average — built groupby/crosstab summaries, a hypothesis test, and two linear regressions, and showed India's mean strike rate exceeds Pakistan's at the 5% significance level.</p>
-    </article>
-    <article class="card">
-      <h3>Client Messaging Automation Platform (SaaS)</h3>
-      <p>Designing and building an SMS/email automation tool for small businesses — win-back campaigns, review & referral requests, and appointment reminders. Built and demoed a live pitch site to gyms, retailers, and restaurants across Salt Lake City.</p>
-    </article>
-    <article class="card">
-      <h3>Arfaz Industry — B2B Market Outreach</h3>
-      <p>Leading outreach for my family's apparel manufacturing factory (Sialkot, Pakistan) to businesses, schools, and clubs across Salt Lake City — positioning factory-direct pricing and quality to win new corporate and institutional clients.</p>
-    </article>
-    <article class="card">
-      <h3>NC State Gymnastics Analysis</h3>
-      <p>Analyzed event strengths and season trends using grouped data, correlations, descriptive statistics, and charts.</p>
-    </article>
-    <article class="card">
-      <h3>Accessory Arcade E-Commerce Store</h3>
-      <p>Built and managed a Shopify store to support product sales, digital branding, and customer engagement.</p>
-    </article>
-    <article class="card">
-      <h3>KPMG Business Technology Project</h3>
-      <p>Coming soon: an IS 3060 consulting project focused on analytics, AI, information systems, and business value.</p>
-    </article>
-  </div>
-</section>
+      <h2>Projects</h2>
+      <div class="project-grid">
+        <article class="card">
+          <h3><a href="https://github.com/Mujtaba-Waqas/cricket-batting-analysis" target="_blank" rel="noopener">Cricket Batting Performance Analysis</a></h3>
+          <p>Analyzed 1,000+ innings of ODI batting data in Python (Pandas, NumPy) to quantify what drives strike rate and batting average — built groupby/crosstab summaries, a hypothesis test, and two linear regressions, and showed India's mean strike rate exceeds Pakistan's at the 5% significance level.</p>
+          <span class="meta">View on GitHub →</span>
+        </article>
+        <article class="card">
+          <h3><a href="https://mujtaba-waqas.github.io/regulars-demo/" target="_blank" rel="noopener">Client Messaging Automation Platform (SaaS)</a></h3>
+          <p>Designing and building an SMS/email automation tool for small businesses — win-back campaigns, review & referral requests, and appointment reminders. Built and demoed a live pitch site to gyms, retailers, and restaurants across Salt Lake City.</p>
+          <span class="meta">View live demo →</span>
+        </article>
+        <article class="card">
+          <h3>Java Image Processor GUI — CS 1410 Final Project</h3>
+          <p>Built a desktop image-editing application in Java with a Swing GUI, developed in a two-person pair-programming team. Implemented file open/save with format filtering, six cumulative image filters, brightness adjustment via slider, and mouse-driven region cropping. Added multi-step undo backed by a defensive-copy history model, handling Java object mutability so earlier image versions weren't overwritten. Scored 91/100 and 88/100 across both project phases.</p>
+        </article>
+        <article class="card">
+          <h3>Arfaz Industry — B2B Market Outreach</h3>
+          <p>Leading outreach for my family's apparel manufacturing factory (Sialkot, Pakistan) to businesses, schools, and clubs across Salt Lake City — positioning factory-direct pricing and quality to win new corporate and institutional clients.</p>
+        </article>
+        <article class="card">
+          <h3>NC State Gymnastics Analysis</h3>
+          <p>Analyzed event strengths and season trends using grouped data, correlations, descriptive statistics, and charts.</p>
+        </article>
+        <article class="card">
+          <h3>Accessory Arcade E-Commerce Store</h3>
+          <p>Built and managed a Shopify store to support product sales, digital branding, and customer engagement.</p>
+        </article>
+        <article class="card">
+          <h3>KPMG Business Technology Project</h3>
+          <p>Coming soon: an IS 3060 consulting project focused on analytics, AI, information systems, and business value.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="resume">
+      <h2>Resume</h2>
+      <div class="resume-box">
+        <p>Download my current resume as a PDF — updated for general internship and full-time applications.</p>
+        <a class="button" style="margin-top:0; background: var(--navy); color: var(--white);" href="Mujtaba_Waqas_Resume.pdf" target="_blank" rel="noopener">Download Resume (PDF)</a>
+      </div>
+    </section>
+
+    <section id="contact">
+      <h2>Contact</h2>
+      <div class="contact-links">
+        <a href="mailto:mujtabawaqas2006@gmail.com">Email</a>
+        <a href="https://www.linkedin.com/in/mujtaba-waqas1" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="https://github.com/Mujtaba-Waqas" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    &copy; 2026 Mujtaba Waqas. Built with HTML &amp; CSS, hosted on GitHub Pages.
+  </footer>
+</body>
+</html>
