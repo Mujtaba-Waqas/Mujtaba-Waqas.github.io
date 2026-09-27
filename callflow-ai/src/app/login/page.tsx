@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Headphones, PhoneCall, ShieldCheck, TrendingUp } from "lucide-react";
 import { getAuth } from "@/lib/auth/session";
@@ -10,12 +11,12 @@ export default async function LoginPage() {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="hidden flex-col justify-between bg-ink p-10 text-white lg:flex">
-        <div className="flex items-center gap-2 text-lg font-semibold">
+        <Link href="/" className="flex items-center gap-2 text-lg font-semibold">
           <span className="flex size-8 items-center justify-center rounded-lg bg-accent">
             <PhoneCall className="size-4" />
           </span>
           CallFlow AI
-        </div>
+        </Link>
         <div className="max-w-md">
           <h1 className="text-3xl font-semibold leading-tight">Answer every lead. Book more jobs. Recover the revenue you&apos;re losing.</h1>
           <p className="mt-4 text-slate-300">The AI front office built for HVAC companies with 1–30 technicians.</p>

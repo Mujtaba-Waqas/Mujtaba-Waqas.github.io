@@ -86,6 +86,25 @@ Vercel publishes whatever is on your `main` branch.
   - On the free plan, cron jobs run at most once a day.
 - **Nothing real is ever contacted.** Calls and texts are simulated, and the site shows a "Public demo" banner.
 
+## Personalise your sales pages
+
+Your site now has three things to share:
+- **Marketing page:** `/`
+- **Live demo:** `/login`
+- **Printable one-pager:** `/one-pager` (click "Save as PDF")
+
+To show your own contact details on them, add these environment variables in **Settings → Environment Variables**, then redeploy:
+
+| Name | Example |
+|---|---|
+| `FOUNDER_NAME` | `Mujtaba Waqas` |
+| `CONTACT_EMAIL` | `you@yourdomain.com` |
+| `CONTACT_PHONE` | `(801) 555-1234` |
+| `BOOKING_URL` | your free Calendly link, e.g. `https://calendly.com/you/20min` |
+| `PILOT_OFFER` | (optional) your own offer text |
+
+The scripts and email templates live in [`sales/`](./sales/README.md).
+
 ## Optional: your own domain
 
 To use a domain like `demo.callflowai.com`:

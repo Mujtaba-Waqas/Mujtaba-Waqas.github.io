@@ -26,6 +26,10 @@ The demo workspace is **Summit Peak HVAC** (Salt Lake City, UT). It is pre-seede
 
 **👉 Beginner, step-by-step guide: [DEPLOY.md](./DEPLOY.md).** It covers Vercel + Neon, about 15 minutes, no coding, and gives you a public demo link. The deploy build runs migrations and loads the demo data automatically (`scripts/vercel-build.mjs`), and a nightly cron resets the public demo.
 
+## Selling it
+
+A public marketing page (`/`), a printable one-page PDF (`/one-pager`), and a full sales kit are included. The kit has a demo video script, email templates, phone and walk-in scripts, a meeting agenda, and pricing and pilot terms. Start with [`sales/README.md`](./sales/README.md).
+
 ## Quick start (local)
 
 Prerequisites: **Node 20+** (tested on 22) and **PostgreSQL 14+**. Docker is optional.
