@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * Optimistic auth redirect only (cookie presence). Real authorization happens
  * server-side in every page, server action and route handler.
  */
-const PUBLIC = ["/login", "/one-pager", "/api/", "/_next/", "/favicon.ico"];
+const PUBLIC = ["/login", "/one-pager", "/privacy", "/terms", "/api/", "/_next/", "/favicon.ico"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

@@ -41,6 +41,9 @@ export default async function LoginPage() {
           <h2 className="text-xl font-semibold text-ink">Sign in</h2>
           <p className="mt-1 text-sm text-muted">Welcome back. Use the demo account to explore Summit Peak HVAC.</p>
           <LoginForm />
+          <p className="mt-8 text-center text-xs text-muted">
+            <Link href="/privacy" className="hover:text-ink">Privacy</Link> · <Link href="/terms" className="hover:text-ink">Terms</Link>
+          </p>
         </div>
       </div>
     </div>

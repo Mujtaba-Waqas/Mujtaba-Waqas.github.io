@@ -105,6 +105,8 @@ To show your own contact details on them, add these environment variables in **S
 
 The scripts and email templates live in [`sales/`](./sales/README.md).
 
+**Privacy Policy and Terms** are at `/privacy` and `/terms`. They show a "Draft" notice until a lawyer reviews them. To fill in your business details, add `LEGAL_COMPANY_NAME`, `LEGAL_CONTACT_EMAIL` and `LEGAL_ADDRESS` (see `.env.example`). Once reviewed, set `LEGAL_REVIEWED=true`. Twilio's business-texting registration asks for these two links.
+
 ## Optional: your own domain
 
 To use a domain like `demo.callflowai.com`:

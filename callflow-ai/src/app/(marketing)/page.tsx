@@ -249,6 +249,8 @@ export default async function MarketingPage() {
             {cfg.contactEmail ? <a href={`mailto:${cfg.contactEmail}`} className="hover:text-ink">{cfg.contactEmail}</a> : null}
             {cfg.contactPhone ? <a href={`tel:${cfg.contactPhone}`} className="hover:text-ink">{cfg.contactPhone}</a> : null}
             <Link href="/one-pager" className="hover:text-ink">One-page overview (PDF)</Link>
+            <Link href="/privacy" className="hover:text-ink">Privacy</Link>
+            <Link href="/terms" className="hover:text-ink">Terms</Link>
           </p>
         </div>
       </footer>
