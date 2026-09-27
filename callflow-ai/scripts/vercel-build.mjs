@@ -4,7 +4,8 @@
  *   1. prisma generate
  *   2. prisma migrate deploy        — uses the *direct* (unpooled) connection
  *   3. seed the demo tenant         — unless DEMO_SEED_ON_DEPLOY=false
- *   4. next build
+ *   4. create the first admin       — only if BOOTSTRAP_ADMIN_EMAIL is set
+ *   5. next build
  *
  * Works with Vercel's Neon integration (DATABASE_URL + DATABASE_URL_UNPOOLED),
  * with a manually pasted DATABASE_URL, or with DIRECT_URL.
@@ -35,4 +36,5 @@ if (process.env.DEMO_SEED_ON_DEPLOY !== "false") {
 } else {
   console.log("\n• Skipping demo seed (DEMO_SEED_ON_DEPLOY=false)");
 }
+if (process.env.BOOTSTRAP_ADMIN_EMAIL) run("npx tsx scripts/bootstrap-admin.ts", { DATABASE_URL: direct });
 run("npx next build", { DATABASE_URL: pooled });

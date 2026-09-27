@@ -12,6 +12,8 @@ import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { customerName, formatCents, formatDate } from "@/lib/format";
 import { ESTIMATE_STATUS } from "@/lib/labels";
+import { zonedDateKey } from "@/lib/time";
+import { TrackEstimateDialog } from "./track-estimate-dialog";
 
 export const metadata = { title: "Estimates" };
 
@@ -22,6 +24,10 @@ export default async function EstimatesPage({ searchParams }: { searchParams: Pr
   if (sp.status && sp.status in ESTIMATE_STATUS) where.status = sp.status as EstimateStatus;
   if (sp.status === "open") where.status = { in: ["SENT", "VIEWED"] };
   if (sp.q) where.OR = [{ number: { contains: sp.q, mode: "insensitive" } }, { title: { contains: sp.q, mode: "insensitive" } }, { customer: { lastName: { contains: sp.q, mode: "insensitive" } } }, { customer: { firstName: { contains: sp.q, mode: "insensitive" } } }];
+  const [services, org] = await Promise.all([
+    db.service.findMany({ where: { organizationId: auth.orgId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.organization.findUniqueOrThrow({ where: { id: auth.orgId }, select: { timezone: true } }),
+  ]);
   const [estimates, all] = await Promise.all([
     db.estimate.findMany({ where, orderBy: { createdAt: "desc" }, include: { customer: true, service: true, assignedEmployee: true, followups: { select: { status: true, stage: true } } } }),
     db.estimate.findMany({ where: { organizationId: auth.orgId }, select: { status: true, totalCents: true, recoveredByAutomation: true } }),
@@ -41,6 +47,7 @@ export default async function EstimatesPage({ searchParams }: { searchParams: Pr
         actions={
           <>
             <RunAutomationButton automationKey="ESTIMATE_RECOVERY" label="Run automation now" size="md" />
+            <TrackEstimateDialog services={services} today={zonedDateKey(new Date(), org.timezone)} />
             <Button asChild>
               <Link href="/estimates/new">
                 <Plus /> New estimate

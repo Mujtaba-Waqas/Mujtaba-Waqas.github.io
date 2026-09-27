@@ -3,6 +3,7 @@ import { buildFollowupSchedule, STOP_REASON_LABELS, type StopReason } from "../d
 import { formatCents } from "../format";
 import { audit } from "./audit";
 import { NotFoundError, nowOf, ValidationError, type TenantContext } from "./context";
+import { findOrCreateCustomer } from "./customers";
 import { logEvent } from "./events";
 import { sendSms } from "./messaging";
 
@@ -93,15 +94,16 @@ export async function updateEstimate(ctx: TenantContext, id: string, input: Esti
 }
 
 /** Marks the estimate sent and schedules the Day 1 / 3 / 7 recovery sequence. */
-export async function markEstimateSent(ctx: TenantContext, id: string) {
+export async function markEstimateSent(ctx: TenantContext, id: string, sentAt?: Date) {
   const est = await getEstimateScoped(ctx, id);
   if (est.status !== "DRAFT") throw new ValidationError("Only draft estimates can be marked as sent");
   if (est.totalCents <= 0) throw new ValidationError("Add at least one line item first");
-  const now = nowOf(ctx);
+  const now = sentAt ?? nowOf(ctx);
+  if (now.getTime() > nowOf(ctx).getTime() + 60_000) throw new ValidationError("The sent date can't be in the future");
   const automation = await db.automation.findUnique({ where: { organizationId_key: { organizationId: ctx.orgId, key: "ESTIMATE_RECOVERY" } } });
   const schedule = buildFollowupSchedule(now, automation?.delaysHours?.length ? automation.delaysHours : undefined);
   await db.$transaction([
-    db.estimate.update({ where: { id }, data: { status: "SENT", sentAt: now, followupStage: 0, automationPaused: false, automationStopReason: null } }),
+    db.estimate.update({ where: { id }, data: { status: "SENT", sentAt: now, expiresAt: new Date(now.getTime() + 30 * 86_400_000), followupStage: 0, automationPaused: false, automationStopReason: null } }),
     db.followup.deleteMany({ where: { estimateId: id, organizationId: ctx.orgId } }),
     db.followup.createMany({ data: schedule.map((s) => ({ organizationId: ctx.orgId, estimateId: id, customerId: est.customerId, stage: s.stage, scheduledFor: s.scheduledFor })) }),
   ]);
@@ -183,4 +185,37 @@ export async function sendManualEstimateFollowup(ctx: TenantContext, id: string,
     actor: "STAFF",
   });
   return result;
+}
+
+export interface QuickEstimateInput {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  title: string;
+  amountCents: number;
+  serviceId?: string | null;
+  sentAt: Date;
+  smsConsent: boolean;
+}
+
+/**
+ * For companies whose quotes live in other software: record the essentials
+ * of an estimate that was already sent and start the recovery sequence.
+ * Requires the customer's consent to receive texts about the quote.
+ */
+export async function trackSentEstimate(ctx: TenantContext, input: QuickEstimateInput) {
+  if (!input.smsConsent) throw new ValidationError("Confirm the customer agreed to receive texts about this estimate");
+  const now = nowOf(ctx);
+  if (input.sentAt.getTime() < now.getTime() - 30 * 86_400_000) throw new ValidationError("Estimates older than 30 days are treated as expired");
+  const customer = await findOrCreateCustomer(ctx, { firstName: input.firstName, lastName: input.lastName, phone: input.phone });
+  if (customer.smsOptedOut) throw new ValidationError("This customer has opted out of texts (STOP), so follow-ups can't be sent");
+  await db.customer.update({ where: { id: customer.id }, data: { smsConsentAt: customer.smsConsentAt ?? now } });
+  const est = await createEstimate(ctx, {
+    customerId: customer.id,
+    serviceId: input.serviceId ?? null,
+    title: input.title,
+    items: [{ description: input.title, quantity: 1, unitPriceCents: input.amountCents }],
+  });
+  await markEstimateSent(ctx, est.id, input.sentAt);
+  return est;
 }

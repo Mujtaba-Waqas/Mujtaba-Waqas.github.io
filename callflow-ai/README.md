@@ -26,6 +26,15 @@ The demo workspace is **Summit Peak HVAC** (Salt Lake City, UT). It is pre-seede
 
 **👉 Beginner, step-by-step guide: [DEPLOY.md](./DEPLOY.md).** It covers Vercel + Neon, about 15 minutes, no coding, and gives you a public demo link. The deploy build runs migrations and loads the demo data automatically (`scripts/vercel-build.mjs`), and a nightly cron resets the public demo.
 
+## Running a real pilot
+
+When a company says yes, follow **[docs/pilot-setup.md](./docs/pilot-setup.md)**. It covers:
+- a separate production deployment with an admin account created from environment variables
+- a Twilio number and A2P 10DLC registration
+- **Settings → Phone & alerts**: missed-call text-back, ring-first, or AI receptionist modes, with staff alerts and quiet hours
+- call forwarding and a test checklist
+- the free GitHub Actions scheduler (`.github/workflows/callflow-automations.yml` at the repo root)
+
 ## Selling it
 
 A public marketing page (`/`), a printable one-page PDF (`/one-pager`), and a full sales kit are included. The kit has a demo video script, email templates, phone and walk-in scripts, a meeting agenda, and pricing and pilot terms. Start with [`sales/README.md`](./sales/README.md).
@@ -119,7 +128,9 @@ Everything in the UI runs locally without credentials:
 | Method | Path | Configure in |
 |---|---|---|
 | POST | `/api/webhooks/twilio/voice` | Twilio number → Voice → "A call comes in" (HTTP POST) |
-| POST | `/api/webhooks/twilio/voice/turn?callId=…` | Set automatically by the TwiML `<Gather action>` |
+| POST | `/api/webhooks/twilio/voice/turn?callId=…` | Set automatically by the TwiML `<Gather action>` (AI receptionist mode) |
+| POST | `/api/webhooks/twilio/voice/dial-status?callId=…` | Set automatically by `<Dial action>` (ring-first mode) |
+| POST | `/api/webhooks/twilio/voice/voicemail?callId=…` | Set automatically by `<Record action>` (voicemail after a missed call) |
 | POST | `/api/webhooks/twilio/sms` | Twilio number → Messaging → "A message comes in" |
 | POST | `/api/webhooks/stripe` | Stripe Dashboard → Webhooks (`checkout.session.completed`, `customer.subscription.*`) |
 | POST | `/api/public/leads` | Your website form (JSON: `organization`, `name`, `phone`, `smsConsent: true`, optional `email`, `zip`, `service`, `message`) |

@@ -2,14 +2,15 @@ import type { AutomationKey, Prisma, RunTrigger } from "@prisma/client";
 import { db } from "../db";
 import { DEFAULT_ESTIMATE_TEMPLATES, getFollowupStopReason, renderTemplate, STOP_REASON_LABELS } from "../domain/followups";
 import { SERVICE_LABELS, type ServiceKey } from "../domain/intents";
-import { customerName, formatCents, formatDateTime, formatPhone, toE164 } from "../format";
+import { customerName, formatCents, formatDateTime, formatPhone } from "../format";
+import { isQuietHours } from "../domain/quiet-hours";
 import { DAY, HOUR, MINUTE } from "../time";
 import { audit } from "./audit";
 import { loadOrg, nowOf, type TenantContext } from "./context";
-import { findOrCreateCustomer } from "./customers";
 import { cancelPendingFollowups } from "./estimates";
 import { logEvent } from "./events";
 import { sendSms } from "./messaging";
+import { recoverMissedCall } from "./phone";
 
 export const TEMPLATE_SEPARATOR = "\n---\n";
 
@@ -167,9 +168,8 @@ async function runReviewRequests(ctx: TenantContext, automation: { template: str
   }
 }
 
-async function runMissedCallRecovery(ctx: TenantContext, automation: { template: string }, opts: RunOptions, L: RunLogger) {
+async function runMissedCallRecovery(ctx: TenantContext, _automation: { template: string }, opts: RunOptions, L: RunLogger) {
   const now = nowOf(ctx);
-  const { vars } = await commonVars(ctx);
   const calls = await db.call.findMany({
     where: {
       organizationId: ctx.orgId,
@@ -182,26 +182,11 @@ async function runMissedCallRecovery(ctx: TenantContext, automation: { template:
   if (!calls.length) L.log("info", "No unrecovered missed calls.");
   for (const c of calls) {
     L.processed++;
-    if (!toE164(c.fromNumber)) {
-      L.log("skip", `Call ${c.id.slice(-6)}: caller number unavailable`, "Call", c.id);
-      continue;
-    }
-    const customer = await findOrCreateCustomer(ctx, { phone: c.fromNumber, firstName: c.callerName?.split(" ")[0], lastName: c.callerName?.split(" ").slice(1).join(" ") });
-    const body = renderTemplate(automation.template, { ...vars, firstName: customer.firstName === "Unknown" ? "there" : customer.firstName });
-    const r = await sendSms(ctx, { customerId: customer.id, body, sender: "AUTOMATION", automationKey: "MISSED_CALL_RECOVERY" });
+    const r = await recoverMissedCall(ctx, c.id);
     if (!r.ok) {
       L.log("skip", `${formatPhone(c.fromNumber)}: text-back not sent — ${r.reason}`, "Call", c.id);
       continue;
     }
-    let leadId = c.leadId;
-    if (!leadId) {
-      const open = await db.lead.findFirst({ where: { organizationId: ctx.orgId, customerId: customer.id, status: { notIn: ["WON", "LOST"] } } });
-      leadId =
-        open?.id ??
-        (await db.lead.create({ data: { organizationId: ctx.orgId, customerId: customer.id, source: "MISSED_CALL", urgency: "NORMAL", requestedService: "Callback — missed call", firstResponseAt: now, status: "CONTACTED", createdAt: now } })).id;
-    }
-    await db.call.update({ where: { id: c.id }, data: { textBackSentAt: now, outcome: "MISSED_RECOVERED", customerId: customer.id, leadId } });
-    await logEvent(ctx, { leadId, customerId: customer.id, type: "missed_call_textback", title: "Missed call recovered by text-back", detail: body, actor: "AUTOMATION" });
     L.log("action", `Text-back sent to ${formatPhone(c.fromNumber)}`, "Call", c.id);
   }
 }
@@ -250,8 +235,12 @@ export async function runAutomation(ctx: TenantContext, key: AutomationKey, opts
   const now = nowOf(ctx);
   const L = new RunLogger(now);
   let failed = false;
+  const { org, settings } = await loadOrg(ctx);
+  const quiet = opts.trigger === "SCHEDULED" && key !== "MISSED_CALL_RECOVERY" && isQuietHours(now, settings.sms.quietHoursStart, settings.sms.quietHoursEnd, org.timezone);
   if (!automation.enabled && key !== "ESTIMATE_RECOVERY") {
     L.log("info", "Automation is disabled — nothing was sent.");
+  } else if (quiet) {
+    L.log("info", `Quiet hours (${settings.sms.quietHoursStart}–${settings.sms.quietHoursEnd}) — pending texts will go out on the next run after quiet hours.`);
   } else {
     try {
       await RUNNERS[key](ctx, automation, opts, L);

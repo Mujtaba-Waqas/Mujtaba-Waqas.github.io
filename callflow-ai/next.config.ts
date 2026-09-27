@@ -17,6 +17,7 @@ const securityHeaders = [
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
       `connect-src 'self'${isDev ? " ws: wss:" : ""}`,
+      "media-src 'self'",
       "frame-ancestors 'none'",
       "form-action 'self'",
       "base-uri 'self'",

@@ -10,7 +10,9 @@ import { toE164 } from "@/lib/format";
 import { getPaymentProvider } from "@/lib/providers";
 import { audit } from "@/lib/services/audit";
 import { loadOrg, ValidationError, type TenantContext } from "@/lib/services/context";
+import { phoneSettingsFormSchema } from "@/lib/validation/schemas";
 import { businessHoursSchema, orgSettingsSchema, receptionistSchema, type OrgSettings } from "@/lib/validation/settings";
+import { alertStaff } from "@/lib/services/phone";
 
 async function patchSettings(ctx: TenantContext, patch: (s: OrgSettings) => OrgSettings, action: string) {
   const { settings } = await loadOrg(ctx);
@@ -140,4 +142,38 @@ export const portalAction = secureAction("billing:manage", z.object({}), async (
   const sub = await db.subscription.findUnique({ where: { organizationId: ctx.orgId } });
   const base = appUrl();
   return getPaymentProvider().createPortalSession({ stripeCustomerId: sub?.stripeCustomerId ?? null, returnUrl: `${base}/billing` });
+});
+
+export const savePhoneSettingsAction = secureAction("settings:manage", phoneSettingsFormSchema, async (input, ctx) => {
+  const callflowNumber = toE164(input.callflowNumber) ?? "";
+  if (input.mode === "ring_then_text_back" && !toE164(input.officeNumber)) throw new ValidationError("Enter the office phone to ring first");
+  if (callflowNumber) {
+    // A CallFlow number can belong to only one company (it routes live calls/texts).
+    const clash = await db.organization.findFirst({ where: { id: { not: ctx.orgId }, settings: { path: ["phone", "callflowNumber"], equals: callflowNumber } } });
+    if (clash) throw new ValidationError("That CallFlow number is already assigned to another company");
+  }
+  await patchSettings(
+    ctx,
+    (s) => ({
+      ...s,
+      phone: {
+        mode: input.mode,
+        callflowNumber,
+        officeNumber: toE164(input.officeNumber) ?? "",
+        ringSeconds: input.ringSeconds,
+        alertPhone: toE164(input.alertPhone) ?? "",
+        voicemail: input.voicemail,
+        missedCallMessage: input.missedCallMessage,
+      },
+      sms: { ...s.sms, quietHoursStart: input.quietHoursStart, quietHoursEnd: input.quietHoursEnd, demoPhoneNumber: !callflowNumber },
+    }),
+    "settings.phone_updated",
+  );
+  revalidatePath("/settings");
+});
+
+export const sendTestAlertAction = secureAction("settings:manage", z.object({}), async (_i, ctx) => {
+  const r = await alertStaff(ctx, "Test alert — staff alerts are working.");
+  if (!r.sent) return { ok: false as const, error: "reason" in r ? `Not sent: ${r.reason}` : "Not sent" };
+  return { simulated: Boolean("simulated" in r && r.simulated) };
 });

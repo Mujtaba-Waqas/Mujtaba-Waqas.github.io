@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { verifyPassword } from "@/lib/auth/password";
+import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { createSession, destroySession, getAuth } from "@/lib/auth/session";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { headers } from "next/headers";
@@ -54,4 +54,25 @@ export async function switchOrganizationAction(organizationId: string) {
   if (!membership) return;
   await db.session.update({ where: { id: auth.sessionId }, data: { activeOrganizationId: organizationId } });
   redirect("/dashboard");
+}
+
+const passwordSchema = z
+  .object({ current: z.string().min(1).max(200), next: z.string().min(12, "Use at least 12 characters").max(200), confirm: z.string() })
+  .refine((v) => v.next === v.confirm, { message: "Passwords don't match", path: ["confirm"] });
+
+/** Change your own password; signs out every other session. */
+export async function changePasswordAction(input: { current: string; next: string; confirm: string }): Promise<{ ok: boolean; error?: string }> {
+  const auth = await getAuth();
+  if (!auth) return { ok: false, error: "Please sign in again." };
+  const parsed = passwordSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+  if (auth.user.email.endsWith("@summitpeakhvac.demo")) return { ok: false, error: "The shared demo account's password can't be changed." };
+  const ip = clientIp(await headers());
+  if (!rateLimit(`pwchange:${ip}`, 5, 60_000).ok) return { ok: false, error: "Too many attempts. Wait a minute." };
+  const user = await db.user.findUniqueOrThrow({ where: { id: auth.userId } });
+  if (!(await verifyPassword(parsed.data.current, user.passwordHash))) return { ok: false, error: "Current password is incorrect." };
+  await db.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(parsed.data.next) } });
+  await db.session.deleteMany({ where: { userId: user.id, id: { not: auth.sessionId } } });
+  await db.auditLog.create({ data: { organizationId: auth.orgId, userId: user.id, action: "user.password_changed", entityType: "User", entityId: user.id } });
+  return { ok: true };
 }

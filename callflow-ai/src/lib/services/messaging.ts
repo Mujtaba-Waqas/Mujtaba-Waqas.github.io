@@ -55,7 +55,7 @@ export async function sendSms(ctx: TenantContext, opts: SendSmsOptions): Promise
   }
 
   const provider = getSmsProvider();
-  const from = toE164(settings.sms.senderNumber) ?? "+18015550198";
+  const from = toE164(settings.phone.callflowNumber) ?? toE164(settings.sms.senderNumber) ?? "+18015550198";
   const result = await provider.send({ to: customer.phone, from, body: base.body });
   const message = await db.message.create({
     data: {

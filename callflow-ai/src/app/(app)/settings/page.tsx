@@ -10,6 +10,10 @@ import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { formatDateTime, formatPhone } from "@/lib/format";
 import { loadOrg, toTenantContext } from "@/lib/services/context";
+import { appUrl } from "@/lib/app-url";
+import { providerStatus } from "@/lib/providers";
+import { PasswordForm } from "./password-form";
+import { PhoneSettingsForm } from "./phone-settings";
 import { CompanyForm, HoursForm, ReviewPolicyForm, ServiceAreaManager, TeamManager } from "./settings-client";
 
 export const metadata = { title: "Settings" };
@@ -94,6 +98,31 @@ export default async function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+        <Card id="phone" className="lg:col-span-2">
+          <CardHeader>
+            <div>
+              <CardTitle>Phone & alerts</CardTitle>
+              <CardDescription>How live calls to your CallFlow number are handled, and who gets alerted.</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <PhoneSettingsForm
+              webhookBase={appUrl()}
+              liveSms={providerStatus().twilio.liveSms}
+              initial={{
+                mode: settings.phone.mode,
+                callflowNumber: settings.phone.callflowNumber ? formatPhone(settings.phone.callflowNumber) : "",
+                officeNumber: settings.phone.officeNumber ? formatPhone(settings.phone.officeNumber) : "",
+                ringSeconds: settings.phone.ringSeconds,
+                alertPhone: settings.phone.alertPhone ? formatPhone(settings.phone.alertPhone) : "",
+                voicemail: settings.phone.voicemail,
+                missedCallMessage: settings.phone.missedCallMessage,
+                quietHoursStart: settings.sms.quietHoursStart,
+                quietHoursEnd: settings.sms.quietHoursEnd,
+              }}
+            />
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle>Review requests</CardTitle>
@@ -121,6 +150,17 @@ export default async function SettingsPage() {
             <p>
               <strong className="text-ink">A2P 10DLC:</strong> production SMS in the US requires brand & campaign registration through Twilio before go-live.
             </p>
+          </CardContent>
+        </Card>
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <div>
+              <CardTitle>Your password</CardTitle>
+              <CardDescription>Signed in as {auth.user.email}</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <PasswordForm />
           </CardContent>
         </Card>
         <Card className="lg:col-span-2">

@@ -106,3 +106,32 @@ export const publicLeadSchema = z.object({
   smsConsent: z.literal(true, { message: "SMS consent is required to receive texts" }),
   website: z.string().max(0).optional(), // honeypot: must be empty
 });
+
+export const quickEstimateSchema = z.object({
+  firstName: z.string().trim().min(1, "Required").max(60),
+  lastName: z.string().trim().min(1, "Required").max(60),
+  phone,
+  title: z.string().trim().min(3, "What was quoted?").max(160),
+  amount: z.coerce.number().min(1, "Enter the quote amount").max(500_000),
+  serviceId: z.string().max(64).optional().or(z.literal("")).transform((v) => v || null),
+  sentOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick the date the estimate was sent"),
+  smsConsent: z.literal(true, { message: "Required: the customer must have agreed to receive texts" }),
+});
+
+const optionalPhone = z
+  .string()
+  .trim()
+  .max(20)
+  .refine((v) => v === "" || v.replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "").length === 10, "Enter a 10-digit US phone number");
+
+export const phoneSettingsFormSchema = z.object({
+  mode: z.enum(["text_back", "ring_then_text_back", "ai_receptionist"]),
+  callflowNumber: optionalPhone,
+  officeNumber: optionalPhone,
+  ringSeconds: z.coerce.number().int().min(10).max(45),
+  alertPhone: optionalPhone,
+  voicemail: z.boolean(),
+  missedCallMessage: z.string().trim().min(10).max(300),
+  quietHoursStart: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+  quietHoursEnd: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+});

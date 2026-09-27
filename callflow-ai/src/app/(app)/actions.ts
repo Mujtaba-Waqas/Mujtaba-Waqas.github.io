@@ -13,7 +13,8 @@ import { audit } from "@/lib/services/audit";
 import { runAutomation, TEMPLATE_SEPARATOR } from "@/lib/services/automations";
 import { processCallTurn, startCall } from "@/lib/services/calls";
 import { loadOrg, ValidationError } from "@/lib/services/context";
-import { assignEstimate, closeEstimate, createEstimate, markEstimateSent, sendManualEstimateFollowup, setEstimateAutomationPaused, updateEstimate } from "@/lib/services/estimates";
+import { assignEstimate, closeEstimate, createEstimate, markEstimateSent, sendManualEstimateFollowup, setEstimateAutomationPaused, trackSentEstimate, updateEstimate } from "@/lib/services/estimates";
+import { zonedDateKey, zonedTimeToUtc } from "@/lib/time";
 import { logEvent } from "@/lib/services/events";
 import { handleInboundSms } from "@/lib/services/inbound-sms";
 import { deleteKnowledgeDoc, getKnowledgeDocs, upsertKnowledgeDoc } from "@/lib/services/knowledge";
@@ -21,7 +22,7 @@ import { addLeadNote, createLead, updateLead, updateLeadStatus } from "@/lib/ser
 import { markConversationRead, sendSms, setHumanTakeover } from "@/lib/services/messaging";
 import { bookAppointment, getAvailableSlots, rescheduleAppointment, setAppointmentStatus } from "@/lib/services/scheduling";
 import {
-  automationUpdateSchema, bookAppointmentSchema, createLeadSchema, estimateSchema, knowledgeSchema, noteSchema, rescheduleSchema, simulateInboundSchema,
+  automationUpdateSchema, bookAppointmentSchema, createLeadSchema, estimateSchema, knowledgeSchema, noteSchema, quickEstimateSchema, rescheduleSchema, simulateInboundSchema,
   simulatorStartSchema, simulatorTurnSchema, smsSchema, updateLeadSchema, updateLeadStatusSchema,
 } from "@/lib/validation/schemas";
 
@@ -131,6 +132,26 @@ export const saveEstimateAction = secureAction("estimates:write", estimateSchema
   }
   const est = await createEstimate(ctx, toEstimateInput(input));
   revalidatePath("/estimates");
+  return { id: est.id };
+});
+
+export const trackSentEstimateAction = secureAction("estimates:write", quickEstimateSchema, async (input, ctx) => {
+  const { org } = await loadOrg(ctx);
+  const [y, m, d] = input.sentOn.split("-").map(Number);
+  // Today → now; earlier days → mid-afternoon of that day in the company's timezone.
+  const sentAt = input.sentOn === zonedDateKey(new Date(), org.timezone) ? new Date() : zonedTimeToUtc(y, m, d, 15, 0, org.timezone);
+  const est = await trackSentEstimate(ctx, {
+    firstName: input.firstName,
+    lastName: input.lastName,
+    phone: input.phone,
+    title: input.title,
+    amountCents: Math.round(input.amount * 100),
+    serviceId: input.serviceId,
+    sentAt,
+    smsConsent: input.smsConsent,
+  });
+  revalidatePath("/estimates");
+  revalidatePath("/dashboard");
   return { id: est.id };
 });
 

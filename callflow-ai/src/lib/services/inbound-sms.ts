@@ -8,6 +8,10 @@ import { findOrCreateCustomer } from "./customers";
 import { cancelPendingFollowups, closeEstimate } from "./estimates";
 import { logEvent } from "./events";
 import { ensureConversation, sendSms } from "./messaging";
+import { alertStaff } from "./phone";
+
+/** When Twilio Advanced Opt-Out is on, Twilio itself replies to STOP/START/HELP; skip ours to avoid duplicates. */
+const providerHandlesKeywordReplies = () => process.env.TWILIO_HANDLES_OPT_OUT_REPLY === "true";
 
 export type InboundAction =
   | "OPTED_OUT"
@@ -60,18 +64,18 @@ export async function handleInboundSms(ctx: TenantContext, input: { from: string
     const cancelled = await cancelPendingFollowups(ctx, { customerId: customer.id }, "OPTED_OUT");
     await logEvent(ctx, { customerId: customer.id, leadId, type: "opted_out", title: "Customer opted out of SMS (STOP)", detail: `All automated messages stopped${cancelled ? ` · ${cancelled} scheduled follow-up${cancelled > 1 ? "s" : ""} cancelled` : ""}`, actor: "CUSTOMER" });
     await audit(ctx, "sms.opted_out", "Customer", customer.id, { cancelledFollowups: cancelled });
-    await sendSms(ctx, { customerId: customer.id, body: `${org.name}: You're unsubscribed and won't receive more texts. Reply START to resubscribe.`, sender: "SYSTEM", complianceReply: true });
+    if (!providerHandlesKeywordReplies()) await sendSms(ctx, { customerId: customer.id, body: `${org.name}: You're unsubscribed and won't receive more texts. Reply START to resubscribe.`, sender: "SYSTEM", complianceReply: true });
     return { action: "OPTED_OUT" as InboundAction, messageId: message.id, customerId: customer.id };
   }
   if (keyword === "START") {
     await db.customer.update({ where: { id: customer.id }, data: { smsOptedOut: false, smsOptedOutAt: null, smsConsentAt: now } });
     await logEvent(ctx, { customerId: customer.id, leadId, type: "opted_in", title: "Customer re-subscribed to SMS (START)", actor: "CUSTOMER" });
     await audit(ctx, "sms.opted_in", "Customer", customer.id);
-    await sendSms(ctx, { customerId: customer.id, body: `${org.name}: You're resubscribed. Reply STOP to opt out anytime.`, sender: "SYSTEM", complianceReply: true });
+    if (!providerHandlesKeywordReplies()) await sendSms(ctx, { customerId: customer.id, body: `${org.name}: You're resubscribed. Reply STOP to opt out anytime.`, sender: "SYSTEM", complianceReply: true });
     return { action: "OPTED_IN" as InboundAction, messageId: message.id, customerId: customer.id };
   }
   if (keyword === "HELP") {
-    await sendSms(ctx, { customerId: customer.id, body: `${org.name}: For help call ${formatPhone(org.phone)}. Msg & data rates may apply. Reply STOP to opt out.`, sender: "SYSTEM", complianceReply: true });
+    if (!providerHandlesKeywordReplies()) await sendSms(ctx, { customerId: customer.id, body: `${org.name}: For help call ${formatPhone(org.phone)}. Msg & data rates may apply. Reply STOP to opt out.`, sender: "SYSTEM", complianceReply: true });
     return { action: "HELP" as InboundAction, messageId: message.id, customerId: customer.id };
   }
   if (customer.smsOptedOut) {
@@ -85,6 +89,7 @@ export async function handleInboundSms(ctx: TenantContext, input: { from: string
     if (leadId) await db.lead.update({ where: { id: leadId }, data: { needsHumanFollowUp: true } });
     await logEvent(ctx, { customerId: customer.id, leadId, type: "handoff", title: "Handed off to staff — customer asked for a person", detail: "Automation paused for this customer", actor: "AI" });
     await audit(ctx, "inbox.handoff", "Conversation", conversation.id);
+    await alertStaff(ctx, `${customerName(customer)} (${formatPhone(customer.phone)}) asked to talk to a person: "${body.slice(0, 140)}"`, { customerId: customer.id, leadId });
     await sendSms(ctx, { customerId: customer.id, body: `Thanks ${customer.firstName === "Unknown" ? "" : customer.firstName}! A member of our team will call you shortly.`.replace("Thanks !", "Thanks!"), sender: "AI" });
     return { action: "HANDOFF" as InboundAction, messageId: message.id, customerId: customer.id };
   }
@@ -108,6 +113,7 @@ export async function handleInboundSms(ctx: TenantContext, input: { from: string
       await db.conversation.update({ where: { id: conversation.id }, data: { humanTakeover: true, takeoverReason: "Negative feedback — owner follow-up" } });
       await logEvent(ctx, { customerId: customer.id, leadId, type: "review_negative", title: `Negative feedback${sat.rating ? ` (${sat.rating}/5)` : ""} — routed to ${owner?.name ?? "owner"}`, detail: body, actor: "CUSTOMER" });
       await audit(ctx, "review.negative_flagged", "Review", pendingReview.id);
+      await alertStaff(ctx, `Unhappy customer ${customerName(customer)} (${formatPhone(customer.phone)}): "${body.slice(0, 140)}". Please call them.`, { customerId: customer.id, leadId });
       const policyAllCustomers = settings.reviews.policy === "all_customers";
       await sendSms(ctx, {
         customerId: customer.id,
@@ -130,6 +136,7 @@ export async function handleInboundSms(ctx: TenantContext, input: { from: string
         if (openEstimate.leadId) await db.lead.update({ where: { id: openEstimate.leadId }, data: { needsHumanFollowUp: true } });
         await sendSms(ctx, { customerId: customer.id, body: `Wonderful, ${customer.firstName}! Our dispatcher will reach out today to schedule your installation.`, sender: "AI", estimateId: openEstimate.id });
         await audit(ctx, "estimate.accepted_via_sms", "Estimate", openEstimate.id, { recovered });
+        await alertStaff(ctx, `${customerName(customer)} said YES to estimate ${openEstimate.number}. Call ${formatPhone(customer.phone)} to schedule.`, { customerId: customer.id, leadId: openEstimate.leadId });
         return { action: "ESTIMATE_ACCEPTED" as InboundAction, messageId: message.id, customerId: customer.id };
       }
       if (detectNegative(body)) {
@@ -141,5 +148,6 @@ export async function handleInboundSms(ctx: TenantContext, input: { from: string
   }
 
   await logEvent(ctx, { customerId: customer.id, leadId, type: "sms_received", title: `SMS from ${customerName(customer)}`, detail: body, actor: "CUSTOMER" });
+  await alertStaff(ctx, `New text from ${customerName(customer) === "Unknown Caller" ? formatPhone(customer.phone) : `${customerName(customer)} (${formatPhone(customer.phone)})`}: "${body.slice(0, 160)}"`, { customerId: customer.id, leadId });
   return { action: "STORED" as InboundAction, messageId: message.id, customerId: customer.id };
 }

@@ -11,6 +11,10 @@ import { clientIp, rateLimit } from "./rate-limit";
 export async function resolveOrgByNumber(to: string | null) {
   const e164 = toE164(to);
   if (e164) {
+    // 1) the company's CallFlow (Twilio) number from Settings → Phone & alerts
+    const byCallflow = await db.organization.findFirst({ where: { settings: { path: ["phone", "callflowNumber"], equals: e164 } } });
+    if (byCallflow) return byCallflow;
+    // 2) the company's main phone number
     const org = await db.organization.findFirst({ where: { phone: e164 } });
     if (org) return org;
   }

@@ -105,10 +105,18 @@ export default async function CallDetailPage({ params }: { params: Promise<{ id:
               <CardTitle>Transcript</CardTitle>
               <span className="flex items-center gap-1 text-xs text-muted">
                 {call.recordingStatus === "RECORDED" ? <Mic className="size-3.5" /> : <MicOff className="size-3.5" />}
-                {call.recordingStatus === "RECORDED" ? "Recording on file (audio not included in demo data)" : call.isSimulated ? "Simulated — no audio recorded" : "Not recorded"}
+                {call.recordingUrl ? "Audio available below" : call.recordingStatus === "RECORDED" ? "Recording on file (audio not included in demo data)" : call.isSimulated ? "Simulated — no audio recorded" : "Not recorded"}
               </span>
             </CardHeader>
             <CardContent>
+              {call.recordingUrl ? (
+                <div className="mb-4 rounded-lg border border-line bg-slate-50 p-3">
+                  <p className="mb-2 text-xs font-medium text-ink-2">{call.status === "VOICEMAIL" ? "Voicemail" : "Recording"}</p>
+                  <audio controls preload="none" src={`/api/recordings/${call.id}`} className="w-full">
+                    Your browser can&apos;t play audio.
+                  </audio>
+                </div>
+              ) : null}
               {call.transcripts.length ? (
                 <ol className="space-y-3">
                   {call.transcripts.map((t) => {
