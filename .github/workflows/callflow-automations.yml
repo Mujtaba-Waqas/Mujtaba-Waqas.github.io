@@ -1,0 +1,30 @@
+# Runs CallFlow AI's due automations (estimate follow-ups, reminders, review
+# requests, missed-call backstop) every 15 minutes. Free on GitHub Actions.
+#
+# Setup (GitHub repo → Settings → Secrets and variables → Actions):
+#   Variables tab → New variable: CALLFLOW_URL = https://your-app.vercel.app  (no trailing slash)
+#   Secrets tab   → New secret:   CALLFLOW_CRON_SECRET = the same value as CRON_SECRET in Vercel
+# Until CALLFLOW_URL is set, this workflow does nothing.
+name: CallFlow automations
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+permissions: {}
+
+jobs:
+  run-automations:
+    if: ${{ vars.CALLFLOW_URL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger due automations
+        env:
+          CALLFLOW_URL: ${{ vars.CALLFLOW_URL }}
+          CRON_SECRET: ${{ secrets.CALLFLOW_CRON_SECRET }}
+        run: |
+          curl --fail-with-body -sS -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${CALLFLOW_URL}/api/cron/automations"

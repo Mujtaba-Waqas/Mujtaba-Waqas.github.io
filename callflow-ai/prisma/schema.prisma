@@ -1,0 +1,856 @@
+// CallFlow AI — multi-tenant schema.
+// Every tenant-owned table carries `organizationId`; the service layer always
+// derives it from the authenticated session, never from client input.
+// Money is stored in integer cents.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  DISPATCHER
+  TECHNICIAN
+}
+
+enum EmployeeKind {
+  OWNER
+  DISPATCHER
+  OFFICE
+  TECHNICIAN
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  BOOKED
+  ESTIMATE_SENT
+  WON
+  LOST
+}
+
+enum LeadSource {
+  PHONE
+  AFTER_HOURS_CALL
+  MISSED_CALL
+  WEB_FORM
+  SMS
+  REFERRAL
+  GOOGLE_LSA
+  REPEAT_CUSTOMER
+}
+
+enum Urgency {
+  EMERGENCY
+  HIGH
+  NORMAL
+  LOW
+}
+
+enum Actor {
+  AI
+  STAFF
+  SYSTEM
+  CUSTOMER
+  AUTOMATION
+}
+
+enum CallDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum CallStatus {
+  IN_PROGRESS
+  COMPLETED
+  TRANSFERRED
+  MISSED
+  VOICEMAIL
+  ABANDONED
+}
+
+enum CallOutcome {
+  BOOKED
+  LEAD_CAPTURED
+  TRANSFERRED
+  OUT_OF_AREA
+  INFO_PROVIDED
+  MISSED_RECOVERED
+  NO_ACTION
+}
+
+enum AnsweredBy {
+  AI
+  STAFF
+  NONE
+}
+
+enum RecordingStatus {
+  RECORDED
+  NOT_RECORDED
+  DISABLED
+  PROCESSING
+}
+
+enum Speaker {
+  AI
+  CALLER
+  STAFF
+  SYSTEM
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+  RECEIVED
+  SIMULATED
+  BLOCKED
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum EstimateStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum FollowupStatus {
+  SCHEDULED
+  SENT
+  CANCELLED
+  FAILED
+}
+
+enum AutomationKey {
+  ESTIMATE_RECOVERY
+  APPOINTMENT_REMINDERS
+  REVIEW_REQUESTS
+  MISSED_CALL_RECOVERY
+  NEW_LEAD_FOLLOWUP
+}
+
+enum RunTrigger {
+  SCHEDULED
+  MANUAL
+  EVENT
+}
+
+enum RunStatus {
+  SUCCESS
+  PARTIAL
+  FAILED
+  NOOP
+}
+
+enum ReviewStatus {
+  SATISFACTION_SENT
+  POSITIVE
+  REVIEW_REQUESTED
+  NEGATIVE_FLAGGED
+  RESOLVED
+  NO_RESPONSE
+}
+
+enum KnowledgeCategory {
+  COMPANY
+  SERVICES
+  HOURS
+  SERVICE_AREA
+  FAQ
+  PRICING
+  FINANCING
+  EMERGENCY
+  ESCALATION
+  PROHIBITED
+}
+
+enum IntegrationProvider {
+  TWILIO
+  GOOGLE_CALENDAR
+  STRIPE
+  OPENAI
+  JOBBER
+  HOUSECALL_PRO
+  QUICKBOOKS
+  SERVICETITAN
+  HUBSPOT
+}
+
+enum IntegrationStatus {
+  DEMO
+  CONNECTED
+  NOT_CONNECTED
+  COMING_SOON
+  ERROR
+}
+
+enum Plan {
+  STARTER
+  GROWTH
+  PRO
+}
+
+enum SubscriptionStatus {
+  DEMO
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+enum UsageType {
+  VOICE_MINUTES
+  SMS_SEGMENTS
+  AI_REQUESTS
+}
+
+model Organization {
+  id                    String    @id @default(cuid())
+  name                  String
+  slug                  String    @unique
+  timezone              String    @default("America/Denver")
+  phone                 String?
+  email                 String?
+  website               String?
+  address               String?
+  city                  String?
+  state                 String?
+  googleReviewUrl       String?
+  /// Validated by `orgSettingsSchema` (src/lib/validation/settings.ts)
+  settings              Json      @default("{}")
+  onboardingStep        Int       @default(1)
+  onboardingCompletedAt DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  memberships       Membership[]
+  employees         Employee[]
+  serviceAreas      ServiceArea[]
+  services          Service[]
+  customers         Customer[]
+  leads             Lead[]
+  leadEvents        LeadEvent[]
+  calls             Call[]
+  callTranscripts   CallTranscript[]
+  conversations     Conversation[]
+  messages          Message[]
+  appointments      Appointment[]
+  estimates         Estimate[]
+  estimateItems     EstimateItem[]
+  followups         Followup[]
+  automations       Automation[]
+  automationRuns    AutomationRun[]
+  reviews           Review[]
+  knowledgeDocs     KnowledgeDocument[]
+  integrations      Integration[]
+  subscription      Subscription?
+  usageRecords      UsageRecord[]
+  auditLogs         AuditLog[]
+  sessions          Session[]
+
+  @@map("organizations")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  memberships Membership[]
+  sessions    Session[]
+  employee    Employee[]
+  auditLogs   AuditLog[]
+
+  @@map("users")
+}
+
+/// Opaque DB-backed session. Only a SHA-256 hash of the cookie token is stored.
+model Session {
+  id                   String        @id @default(cuid())
+  tokenHash            String        @unique
+  userId               String
+  activeOrganizationId String?
+  expiresAt            DateTime
+  userAgent            String?
+  createdAt            DateTime      @default(now())
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeOrganization   Organization? @relation(fields: [activeOrganizationId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           Role
+  createdAt      DateTime     @default(now())
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@map("memberships")
+}
+
+model Employee {
+  id             String       @id @default(cuid())
+  organizationId String
+  userId         String?
+  name           String
+  title          String
+  kind           EmployeeKind
+  phone          String?
+  email          String?
+  color          String       @default("#2563eb")
+  skills         String[]
+  isOnCall       Boolean      @default(false)
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  assignedLeads     Lead[]
+  appointments      Appointment[]
+  assignedEstimates Estimate[]
+  assignedReviews   Review[]
+
+  @@index([organizationId])
+  @@map("employees")
+}
+
+model ServiceArea {
+  id             String       @id @default(cuid())
+  organizationId String
+  county         String
+  city           String
+  zip            String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, zip])
+  @@index([organizationId, city])
+  @@map("service_areas")
+}
+
+model Service {
+  id              String       @id @default(cuid())
+  organizationId  String
+  name            String
+  category        String
+  description     String?
+  durationMinutes Int          @default(90)
+  /// Published starting price in cents (null = never quoted by AI)
+  startingPriceCents Int?
+  isEmergency     Boolean      @default(false)
+  active          Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  leads        Lead[]
+  appointments Appointment[]
+  estimates    Estimate[]
+
+  @@index([organizationId])
+  @@map("services")
+}
+
+model Customer {
+  id             String       @id @default(cuid())
+  organizationId String
+  firstName      String
+  lastName       String
+  phone          String
+  email          String?
+  address        String?
+  city           String?
+  state          String?      @default("UT")
+  zip            String?
+  notes          String?
+  tags           String[]
+  hasMaintenancePlan Boolean  @default(false)
+  smsConsentAt   DateTime?
+  smsOptedOut    Boolean      @default(false)
+  smsOptedOutAt  DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  leads         Lead[]
+  leadEvents    LeadEvent[]
+  calls         Call[]
+  conversation  Conversation?
+  messages      Message[]
+  appointments  Appointment[]
+  estimates     Estimate[]
+  followups     Followup[]
+  reviews       Review[]
+
+  @@unique([organizationId, phone])
+  @@index([organizationId, lastName])
+  @@map("customers")
+}
+
+model Lead {
+  id                 String       @id @default(cuid())
+  organizationId     String
+  customerId         String
+  status             LeadStatus   @default(NEW)
+  source             LeadSource
+  urgency            Urgency      @default(NORMAL)
+  serviceId          String?
+  requestedService   String
+  description        String?
+  estimatedValueCents Int?
+  assignedEmployeeId String?
+  notes              String?
+  lostReason         String?
+  needsHumanFollowUp Boolean      @default(false)
+  firstResponseAt    DateTime?
+  wonAt              DateTime?
+  lostAt             DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer           Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  service            Service?     @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  assignedEmployee   Employee?    @relation(fields: [assignedEmployeeId], references: [id], onDelete: SetNull)
+
+  events       LeadEvent[]
+  calls        Call[]
+  appointments Appointment[]
+  estimates    Estimate[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, createdAt])
+  @@index([customerId])
+  @@map("leads")
+}
+
+model LeadEvent {
+  id             String       @id @default(cuid())
+  organizationId String
+  leadId         String?
+  customerId     String?
+  type           String
+  title          String
+  detail         String?
+  actor          Actor        @default(SYSTEM)
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  lead           Lead?        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  customer       Customer?    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@index([leadId])
+  @@index([customerId])
+  @@map("lead_events")
+}
+
+model Call {
+  id              String          @id @default(cuid())
+  organizationId  String
+  customerId      String?
+  leadId          String?
+  direction       CallDirection   @default(INBOUND)
+  status          CallStatus
+  outcome         CallOutcome?
+  fromNumber      String
+  toNumber        String
+  callerName      String?
+  startedAt       DateTime        @default(now())
+  endedAt         DateTime?
+  durationSeconds Int             @default(0)
+  isAfterHours    Boolean         @default(false)
+  isEmergency     Boolean         @default(false)
+  urgency         Urgency?
+  answeredBy      AnsweredBy      @default(AI)
+  transferredTo   String?
+  recordingStatus RecordingStatus @default(NOT_RECORDED)
+  recordingUrl    String?
+  /// Structured AI summary (see CallSummary type)
+  summary         Json?
+  /// Server-side receptionist state for in-progress simulated/live calls
+  engineState     Json?
+  isSimulated     Boolean         @default(false)
+  providerCallSid String?         @unique
+  textBackSentAt  DateTime?
+  createdAt       DateTime        @default(now())
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer        Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  lead            Lead?           @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  transcripts CallTranscript[]
+  appointment Appointment?
+
+  @@index([organizationId, startedAt])
+  @@index([organizationId, status])
+  @@map("calls")
+}
+
+model CallTranscript {
+  id             String       @id @default(cuid())
+  organizationId String
+  callId         String
+  seq            Int
+  speaker        Speaker
+  text           String
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  call           Call         @relation(fields: [callId], references: [id], onDelete: Cascade)
+
+  @@unique([callId, seq])
+  @@index([organizationId])
+  @@map("call_transcripts")
+}
+
+model Conversation {
+  id               String       @id @default(cuid())
+  organizationId   String
+  customerId       String       @unique
+  humanTakeover    Boolean      @default(false)
+  takeoverReason   String?
+  unreadCount      Int          @default(0)
+  lastMessageAt    DateTime     @default(now())
+  createdAt        DateTime     @default(now())
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer         Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  messages         Message[]
+
+  @@index([organizationId, lastMessageAt])
+  @@map("conversations")
+}
+
+model Message {
+  id             String           @id @default(cuid())
+  organizationId String
+  conversationId String
+  customerId     String
+  direction      MessageDirection
+  sender         Actor
+  body           String
+  status         MessageStatus
+  isSimulated    Boolean          @default(false)
+  providerSid    String?
+  errorReason    String?
+  automationKey  AutomationKey?
+  estimateId     String?
+  appointmentId  String?
+  createdAt      DateTime         @default(now())
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conversation   Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  customer       Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  estimate       Estimate?        @relation(fields: [estimateId], references: [id], onDelete: SetNull)
+  appointment    Appointment?     @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  followup       Followup?
+
+  @@index([organizationId, createdAt])
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+model Appointment {
+  id                 String            @id @default(cuid())
+  organizationId     String
+  customerId         String
+  leadId             String?
+  serviceId          String?
+  technicianId       String?
+  callId             String?           @unique
+  title              String
+  startAt            DateTime
+  endAt              DateTime
+  bufferMinutes      Int               @default(30)
+  status             AppointmentStatus @default(SCHEDULED)
+  isEmergency        Boolean           @default(false)
+  bookedBy           Actor             @default(STAFF)
+  address            String?
+  notes              String?
+  estimatedValueCents Int?
+  confirmationSentAt DateTime?
+  reminderSentAt     DateTime?
+  completedAt        DateTime?
+  cancelledAt        DateTime?
+  cancelReason       String?
+  externalCalendarId String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  organization       Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer           Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  lead               Lead?             @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  service            Service?          @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  technician         Employee?         @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  call               Call?             @relation(fields: [callId], references: [id], onDelete: SetNull)
+  messages           Message[]
+  review             Review?
+
+  @@index([organizationId, startAt])
+  @@index([technicianId, startAt])
+  @@map("appointments")
+}
+
+model Estimate {
+  id                    String         @id @default(cuid())
+  organizationId        String
+  number                String
+  customerId            String
+  leadId                String?
+  serviceId             String?
+  assignedEmployeeId    String?
+  title                 String
+  status                EstimateStatus @default(DRAFT)
+  subtotalCents         Int            @default(0)
+  taxCents              Int            @default(0)
+  totalCents            Int            @default(0)
+  sentAt                DateTime?
+  viewedAt              DateTime?
+  acceptedAt            DateTime?
+  declinedAt            DateTime?
+  expiresAt             DateTime?
+  followupStage         Int            @default(0)
+  automationPaused      Boolean        @default(false)
+  automationStopReason  String?
+  recoveredByAutomation Boolean        @default(false)
+  notes                 String?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  organization          Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer              Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  lead                  Lead?          @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  service               Service?       @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  assignedEmployee      Employee?      @relation(fields: [assignedEmployeeId], references: [id], onDelete: SetNull)
+
+  items     EstimateItem[]
+  followups Followup[]
+  messages  Message[]
+
+  @@unique([organizationId, number])
+  @@index([organizationId, status])
+  @@map("estimates")
+}
+
+model EstimateItem {
+  id             String       @id @default(cuid())
+  organizationId String
+  estimateId     String
+  description    String
+  quantity       Int          @default(1)
+  unitPriceCents Int
+  sortOrder      Int          @default(0)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  estimate       Estimate     @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+
+  @@index([estimateId])
+  @@map("estimate_items")
+}
+
+model Followup {
+  id              String         @id @default(cuid())
+  organizationId  String
+  estimateId      String
+  customerId      String
+  stage           Int
+  scheduledFor    DateTime
+  status          FollowupStatus @default(SCHEDULED)
+  sentAt          DateTime?
+  cancelledReason String?
+  messageId       String?        @unique
+  createdAt       DateTime       @default(now())
+  organization    Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  estimate        Estimate       @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  customer        Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  message         Message?       @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@unique([estimateId, stage])
+  @@index([organizationId, status, scheduledFor])
+  @@map("followups")
+}
+
+model Automation {
+  id                 String        @id @default(cuid())
+  organizationId     String
+  key                AutomationKey
+  name               String
+  description        String
+  enabled            Boolean       @default(true)
+  triggerDescription String
+  template           String
+  /// Delay schedule in hours, e.g. [24, 72, 168]
+  delaysHours        Int[]
+  stopConditions     String[]
+  lastRunAt          DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  organization       Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  runs               AutomationRun[]
+
+  @@unique([organizationId, key])
+  @@map("automations")
+}
+
+model AutomationRun {
+  id             String       @id @default(cuid())
+  organizationId String
+  automationId   String
+  trigger        RunTrigger
+  status         RunStatus
+  processed      Int          @default(0)
+  actionsTaken   Int          @default(0)
+  skipped        Int          @default(0)
+  /// Array of { at, level, message, entityType?, entityId? }
+  log            Json         @default("[]")
+  triggeredById  String?
+  startedAt      DateTime     @default(now())
+  finishedAt     DateTime?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  automation     Automation   @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, startedAt])
+  @@map("automation_runs")
+}
+
+model Review {
+  id                 String       @id @default(cuid())
+  organizationId     String
+  customerId         String
+  appointmentId      String?      @unique
+  assignedEmployeeId String?
+  status             ReviewStatus
+  rating             Int?
+  response           String?
+  satisfactionSentAt DateTime?
+  respondedAt        DateTime?
+  reviewRequestedAt  DateTime?
+  flaggedAt          DateTime?
+  resolvedAt         DateTime?
+  notes              String?
+  createdAt          DateTime     @default(now())
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer           Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  appointment        Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  assignedEmployee   Employee?    @relation(fields: [assignedEmployeeId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+  @@map("reviews")
+}
+
+model KnowledgeDocument {
+  id             String            @id @default(cuid())
+  organizationId String
+  category       KnowledgeCategory
+  title          String
+  content        String
+  tags           String[]
+  isActive       Boolean           @default(true)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, category])
+  @@map("knowledge_documents")
+}
+
+model Integration {
+  id             String              @id @default(cuid())
+  organizationId String
+  provider       IntegrationProvider
+  status         IntegrationStatus
+  /// Non-secret configuration only. Secrets live in environment variables.
+  config         Json                @default("{}")
+  connectedAt    DateTime?
+  lastSyncAt     DateTime?
+  error          String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, provider])
+  @@map("integrations")
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  organizationId       String             @unique
+  plan                 Plan
+  status               SubscriptionStatus
+  isDemo               Boolean            @default(true)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?            @unique
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  organization         Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model UsageRecord {
+  id             String       @id @default(cuid())
+  organizationId String
+  type           UsageType
+  quantity       Int
+  occurredAt     DateTime     @default(now())
+  referenceId    String?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, type, occurredAt])
+  @@map("usage_records")
+}
+
+model AuditLog {
+  id             String       @id @default(cuid())
+  organizationId String
+  userId         String?
+  action         String
+  entityType     String
+  entityId       String?
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@map("audit_logs")
+}
+
+/// Idempotency ledger for inbound provider webhooks (Stripe event ids, Twilio SIDs).
+model WebhookEvent {
+  id         String   @id @default(cuid())
+  provider   String
+  externalId String
+  receivedAt DateTime @default(now())
+
+  @@unique([provider, externalId])
+  @@map("webhook_events")
+}
