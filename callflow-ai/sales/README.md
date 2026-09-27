@@ -9,6 +9,7 @@ Everything you need to turn the demo into your first paying customers.
 | [03-phone-and-walk-in-scripts.md](03-phone-and-walk-in-scripts.md) | Calling companies and visiting in person, plus answers to common objections |
 | [04-demo-meeting-script.md](04-demo-meeting-script.md) | Running a 20-minute Zoom or in-person meeting |
 | [05-pricing-and-pilot.md](05-pricing-and-pilot.md) | What to charge, the free pilot, and how to prove results |
+| [lead-tracker.xlsx](lead-tracker.xlsx) | Spreadsheet for every company you contact, with a pipeline summary, MRR and pilot results. Open it in Excel or upload it to Google Sheets. |
 
 **Your sales assets (once deployed):**
 - **Marketing page:** `https://YOUR-SITE.vercel.app/`
