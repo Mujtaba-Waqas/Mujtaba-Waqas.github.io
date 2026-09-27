@@ -1,3 +1,4 @@
+import { appUrl } from "@/lib/app-url";
 import { CheckCircle2, CircleDashed, FlaskConical, KeyRound, Plug, Webhook } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +24,7 @@ export default async function IntegrationsPage() {
   const rows = await db.integration.findMany({ where: { organizationId: auth.orgId } });
   const ps = providerStatus();
   const live: Record<string, boolean> = { TWILIO: ps.twilio.configured, OPENAI: ps.openai.configured, GOOGLE_CALENDAR: ps.google.configured, STRIPE: ps.stripe.configured };
-  const base = process.env.APP_URL ?? "http://localhost:3000";
+  const base = appUrl();
 
   return (
     <>

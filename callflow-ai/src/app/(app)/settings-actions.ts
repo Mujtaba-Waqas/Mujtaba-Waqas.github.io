@@ -1,5 +1,6 @@
 "use server";
 
+import { appUrl } from "@/lib/app-url";
 import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -110,7 +111,7 @@ export const setEmployeeActiveAction = secureAction("team:manage", z.object({ id
 // ── Billing ──────────────────────────────────────────────────────────────
 export const checkoutAction = secureAction("billing:manage", z.object({ plan: z.enum(["STARTER", "GROWTH", "PRO"]) }), async ({ plan }, ctx, auth) => {
   const sub = await db.subscription.findUnique({ where: { organizationId: ctx.orgId } });
-  const base = process.env.APP_URL ?? "http://localhost:3000";
+  const base = appUrl();
   const provider = getPaymentProvider();
   const { url, simulated } = await provider.createCheckoutSession({
     organizationId: ctx.orgId,
@@ -137,6 +138,6 @@ export const checkoutAction = secureAction("billing:manage", z.object({ plan: z.
 
 export const portalAction = secureAction("billing:manage", z.object({}), async (_input, ctx) => {
   const sub = await db.subscription.findUnique({ where: { organizationId: ctx.orgId } });
-  const base = process.env.APP_URL ?? "http://localhost:3000";
+  const base = appUrl();
   return getPaymentProvider().createPortalSession({ stripeCustomerId: sub?.stripeCustomerId ?? null, returnUrl: `${base}/billing` });
 });

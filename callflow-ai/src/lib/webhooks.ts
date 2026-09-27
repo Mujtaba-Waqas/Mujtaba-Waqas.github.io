@@ -1,5 +1,6 @@
 import "server-only";
 import { NextResponse } from "next/server";
+import { appUrl } from "./app-url";
 import { db } from "./db";
 import { toE164 } from "./format";
 import { getVoiceProvider } from "./providers";
@@ -19,7 +20,7 @@ export async function resolveOrgByNumber(to: string | null) {
 
 export function publicUrl(req: Request) {
   const u = new URL(req.url);
-  const base = process.env.APP_URL ?? `${u.protocol}//${u.host}`;
+  const base = (process.env.APP_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL) ? appUrl() : `${u.protocol}//${u.host}`;
   return `${base.replace(/\/$/, "")}${u.pathname}${u.search}`;
 }
 

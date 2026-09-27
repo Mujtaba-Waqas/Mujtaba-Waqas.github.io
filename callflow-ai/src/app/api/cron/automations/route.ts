@@ -4,8 +4,11 @@ import { db } from "@/lib/db";
 import { runAllDueAutomations } from "@/lib/services/automations";
 import { systemContext } from "@/lib/services/context";
 
-/** Scheduler entry point (e.g. Vercel Cron / GitHub Actions every 5 minutes). Requires `Authorization: Bearer $CRON_SECRET`. */
-export async function POST(req: Request) {
+/**
+ * Scheduler entry point (Vercel Cron uses GET; other schedulers may POST).
+ * Requires `Authorization: Bearer $CRON_SECRET`.
+ */
+async function handle(req: Request) {
   const secret = process.env.CRON_SECRET;
   const given = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
   if (!secret || given.length !== secret.length || !timingSafeEqual(Buffer.from(given), Buffer.from(secret))) {
@@ -19,3 +22,6 @@ export async function POST(req: Request) {
   }
   return NextResponse.json({ ok: true, results });
 }
+
+export const GET = handle;
+export const POST = handle;

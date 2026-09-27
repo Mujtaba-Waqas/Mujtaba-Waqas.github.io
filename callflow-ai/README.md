@@ -22,6 +22,10 @@ The demo workspace is **Summit Peak HVAC** (Salt Lake City, UT). It is pre-seede
 | Tests | Vitest (pure domain tests + Postgres integration tests) |
 | Providers | `VoiceProvider`, `SmsProvider`, `AIProvider`, `CalendarProvider`, `PaymentProvider`, each with a working demo implementation plus Twilio / OpenAI / Google Calendar / Stripe adapters |
 
+## Put it online
+
+**👉 Beginner, step-by-step guide: [DEPLOY.md](./DEPLOY.md).** It covers Vercel + Neon, about 15 minutes, no coding, and gives you a public demo link. The deploy build runs migrations and loads the demo data automatically (`scripts/vercel-build.mjs`), and a nightly cron resets the public demo.
+
 ## Quick start (local)
 
 Prerequisites: **Node 20+** (tested on 22) and **PostgreSQL 14+**. Docker is optional.
@@ -115,7 +119,8 @@ Everything in the UI runs locally without credentials:
 | POST | `/api/webhooks/twilio/sms` | Twilio number → Messaging → "A message comes in" |
 | POST | `/api/webhooks/stripe` | Stripe Dashboard → Webhooks (`checkout.session.completed`, `customer.subscription.*`) |
 | POST | `/api/public/leads` | Your website form (JSON: `organization`, `name`, `phone`, `smsConsent: true`, optional `email`, `zip`, `service`, `message`) |
-| POST | `/api/cron/automations` | Any scheduler, every 5 minutes, with `Authorization: Bearer $CRON_SECRET` |
+| GET/POST | `/api/cron/automations` | Any scheduler, every 5 minutes (daily on Vercel Hobby), with `Authorization: Bearer $CRON_SECRET` |
+| GET/POST | `/api/cron/reset-demo` | Nightly public-demo reset (Bearer `CRON_SECRET`, only when `PUBLIC_DEMO=true`) |
 | GET | `/api/health` | Uptime checks. Reports DB status and which providers are live vs. simulated. |
 
 `APP_URL` must be the exact public URL Twilio calls, because signatures are computed over it. The org is resolved from the called number (`organizations.phone`) or `DEFAULT_ORG_SLUG`.
@@ -124,7 +129,8 @@ All UI mutations are **Server Actions** (`src/app/(app)/actions.ts`, `settings-a
 
 ## Deployment recommendations
 
-- **App:** Vercel, Render, Fly.io, or any Node host (`npm run build && npm start`). Set every variable from `.env.example`, and set `DEMO_LOGIN_ENABLED=false`.
+- **Public demo:** follow [DEPLOY.md](./DEPLOY.md). `vercel.json` sets the build command (`node scripts/vercel-build.mjs`: generate, then migrate using the unpooled URL, then seed, then build) and two daily crons (`/api/cron/reset-demo`, `/api/cron/automations`).
+- **Customer deployments:** Vercel Pro, Render, Fly.io, or any Node host. Set every variable from `.env.example`, set `DEMO_LOGIN_ENABLED=false`, `PUBLIC_DEMO=false` and `DEMO_SEED_ON_DEPLOY=false`, and set `APP_URL` to the real domain.
 - **Database:** managed Postgres (Neon, Supabase, RDS). Run `npm run db:migrate` in the release step. Seed only non-production environments.
 - **Scheduler:** Vercel Cron or a GitHub Action calling `POST /api/cron/automations` every 5 minutes.
 - **Rate limiting:** the built-in limiter is in-memory (single instance). Use Redis/Upstash for multi-instance deployments.
@@ -158,7 +164,8 @@ All UI mutations are **Server Actions** (`src/app/(app)/actions.ts`, `settings-a
 
 ```
 callflow-ai/
-├── prisma/            schema.prisma, migrations/, seed.ts, seed-data.ts
+├── prisma/            schema.prisma, migrations/, seed.ts (entry point)
+├── scripts/           vercel-build.mjs (deploy build: migrate → seed → build)
 ├── src/
 │   ├── app/           routes: (app)/* dashboard pages, login, onboarding, api/*
 │   ├── components/    ui/* primitives, app/* shared widgets, charts/*
@@ -166,6 +173,7 @@ callflow-ai/
 │   │   ├── domain/    pure logic: receptionist engine, urgency, service area, availability, follow-up rules, KB retrieval
 │   │   ├── services/  tenant-scoped data services (leads, calls, estimates, automations, messaging, scheduling…)
 │   │   ├── providers/ provider interfaces + demo / twilio / openai / google / stripe adapters
+│   │   ├── demo/      seed-demo.ts + seed-data.ts (Summit Peak HVAC demo tenant)
 │   │   ├── auth/      sessions, passwords, RBAC
 │   │   └── validation/ Zod schemas
 │   └── proxy.ts       optimistic auth redirect (Next 16 "proxy", formerly middleware)

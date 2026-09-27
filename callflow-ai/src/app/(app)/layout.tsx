@@ -44,6 +44,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <UserMenu name={auth.user.name} email={auth.user.email} role={auth.role} />
         </div>
       </header>
+      {process.env.PUBLIC_DEMO === "true" ? (
+        <div className="border-b border-teal-200 bg-accent-50 px-4 py-2 text-center text-xs text-ink-2 sm:px-6">
+          <strong className="text-ink">Public demo</strong> — Summit Peak HVAC is a fictional company. No real calls or texts are sent, and all data resets every night.
+        </div>
+      ) : null}
       <main className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:py-8">{children}</main>
     </div>
   );

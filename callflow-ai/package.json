@@ -12,10 +12,11 @@
     "test:watch": "vitest",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
-    "db:seed": "prisma db seed",
+    "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
     "setup": "prisma migrate deploy && prisma db seed",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "vercel-build": "node scripts/vercel-build.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
