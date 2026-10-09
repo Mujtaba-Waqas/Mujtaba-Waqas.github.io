@@ -1,0 +1,18 @@
+# Local PostgreSQL for CallFlow AI. Matches DATABASE_URL in .env.example.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: callflow
+      POSTGRES_PASSWORD: callflow
+      POSTGRES_DB: callflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - callflow-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U callflow"]
+      interval: 5s
+      retries: 10
+volumes:
+  callflow-pg:
