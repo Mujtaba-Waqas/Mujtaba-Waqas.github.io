@@ -21,9 +21,9 @@ export function LegalShell({ title, children }: { title: string; children: React
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-        {!cfg.reviewed ? (
+        {!cfg.detailsComplete ? (
           <p role="note" className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            <strong>Draft.</strong> This document is a starting template and has not yet been reviewed by a lawyer. It will be finalized before CallFlow AI is offered commercially.
+            <strong>Template.</strong> The operator&apos;s contact details haven&apos;t been filled in yet. Set CONTACT_EMAIL (or LEGAL_CONTACT_EMAIL) to complete this page.
           </p>
         ) : null}
         <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>

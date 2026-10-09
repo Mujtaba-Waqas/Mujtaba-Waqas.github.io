@@ -153,11 +153,11 @@ GitHub pauses scheduled workflows in repos with no activity for 60 days, so comm
 - **Voice minutes** for the missed-call message and voicemail: fractions of a cent per minute.
 - **Hosting** (shared by all customers): Vercel Pro about $20/month, plus Neon (free tier to start; paid as you grow).
 
-## Legal checklist (not legal advice)
+## Go-live checklist
 
-- [ ] Signed pilot agreement or email (see `sales/05-pricing-and-pilot.md`)
+- [ ] Owner replied "yes" to your pilot email (see `sales/05-pricing-and-pilot.md`)
 - [ ] Owner approved every template
 - [ ] Only people who contacted the business, or gave consent, get texts. "Track a sent estimate" requires confirming consent.
 - [ ] STOP works (tested in Step 5)
 - [ ] Voicemail and recording disclosure is in the caller message ("You can also leave a message…")
-- [ ] Privacy policy and terms on your website before charging (a template service or lawyer)
+- [ ] `/privacy` and `/terms` pages live with your contact email filled in (Twilio asks for both links)

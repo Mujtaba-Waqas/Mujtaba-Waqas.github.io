@@ -13,7 +13,7 @@
 - Honest early customers are worth more than full price right now.
 
 ## The pilot: simple terms to put in writing
-Write these in an email or a short one-page agreement, and have a lawyer glance at it before you sign your first one. This is not legal advice.
+Write these in an email and ask the owner to reply "Yes, sounds good." That reply is your agreement for a small pilot.
 
 1. **Length:** 30 days from go-live.
 2. **Scope:** missed-call text-back and estimate follow-up. AI after-hours answering is optional.
@@ -25,6 +25,14 @@ Write these in an email or a short one-page agreement, and have a lawyer glance 
    - STOP is always honored.
    - US business texting requires registration (A2P 10DLC), which you handle.
 7. **Success check:** a 20-minute review meeting on day 30.
+
+## Getting paid (Venmo)
+1. Make a **Venmo Business profile** in the Venmo app: tap your picture → your name at the top → **Create a business profile**. It's free; Venmo takes a small fee per payment (about 2%, check Venmo's current rate). Don't use a personal Venmo for business: Venmo can freeze personal accounts that take business payments.
+2. In Vercel (your **real** app, not the demo), add `PAY_VENMO_HANDLE` = your business handle, e.g. `@callflow-mujtaba`, and redeploy. The customer's **Billing** page then shows how much to send, where, and what to put in the note. Zelle works too: `PAY_ZELLE` = your Zelle email or phone.
+3. On day 30, after the results meeting, send: *"Thanks [Name]! To keep it running, send $[price] by Venmo to @[handle] with the note 'CallFlow – [Company]'. Same date each month, cancel anytime with a text."*
+4. When money arrives, mark it in your tracker (**Pilot results** tab). Two days before each monthly due date, send a friendly Venmo **Request** for the amount.
+5. If a payment is 7+ days late, send one reminder; if it's 14 days late, pause their service (turn off the automations) until it's paid.
+6. Keep a list of every payment. It's taxable income: put about 25–30% aside for taxes, and Venmo Business may send you a 1099-K.
 
 ## What to measure (proves it works)
 - Missed calls texted back, and how many became booked jobs

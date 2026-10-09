@@ -2,8 +2,8 @@ import { marketingConfig } from "./marketing";
 
 /**
  * Details shown in the Privacy Policy and Terms. Set these as environment
- * variables once you have a registered business. Until LEGAL_REVIEWED=true,
- * the pages show a visible "draft" notice.
+ * variables. Until a contact email is set, the pages show a visible notice
+ * that the operator's details are missing.
  */
 export function legalConfig() {
   const clean = (v: string | undefined) => (v && v.trim() ? v.trim() : null);
@@ -17,6 +17,6 @@ export function legalConfig() {
     state: clean(process.env.LEGAL_STATE) ?? "Utah",
     county: clean(process.env.LEGAL_COUNTY) ?? "Salt Lake County",
     effectiveDate: clean(process.env.LEGAL_EFFECTIVE_DATE) ?? "October 1, 2026",
-    reviewed: process.env.LEGAL_REVIEWED === "true",
+    detailsComplete: Boolean(clean(process.env.LEGAL_CONTACT_EMAIL) ?? m.contactEmail),
   };
 }

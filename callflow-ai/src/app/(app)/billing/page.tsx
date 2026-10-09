@@ -1,10 +1,11 @@
-import { Check, FlaskConical } from "lucide-react";
+import { Check, FlaskConical, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/misc";
 import { requireAuth } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { formatDate, formatNumber } from "@/lib/format";
+import { manualPaymentConfig } from "@/lib/marketing";
 import { PLANS } from "@/lib/plans";
 import { providerStatus } from "@/lib/providers";
 import { cn } from "@/lib/utils";
@@ -18,14 +19,35 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
   const sub = await db.subscription.findUnique({ where: { organizationId: auth.orgId } });
   const usage = sub ? await db.usageRecord.groupBy({ by: ["type"], where: { organizationId: auth.orgId, occurredAt: { gte: sub.currentPeriodStart } }, _sum: { quantity: true } }) : [];
   const stripeLive = providerStatus().stripe.configured;
+  const manual = manualPaymentConfig();
+  const manualBilling = !stripeLive && manual.enabled;
+  const org = manualBilling ? await db.organization.findUnique({ where: { id: auth.orgId }, select: { name: true } }) : null;
   const current = sub?.plan ?? "GROWTH";
   const plan = PLANS[current];
   const used = (t: string) => usage.find((u) => u.type === t)?._sum.quantity ?? 0;
 
   return (
     <>
-      <PageHeader title="Billing" description="Simple monthly plans. No setup fees, cancel anytime." actions={<PortalButton />} />
-      {!stripeLive ? (
+      <PageHeader title="Billing" description="Simple monthly plans. No setup fees, cancel anytime." actions={manualBilling ? undefined : <PortalButton />} />
+      {manualBilling ? (
+        <Card className="mb-4 p-4">
+          <div className="flex items-start gap-3">
+            <Wallet className="mt-0.5 size-5 shrink-0 text-accent" />
+            <div className="space-y-1 text-sm text-ink-2">
+              <p className="font-semibold text-ink">How to pay</p>
+              <p>
+                Send <strong className="text-ink">${plan.priceMonthly}</strong> each month
+                {manual.venmoHandle ? <> by Venmo to <strong className="text-ink">{manual.venmoHandle}</strong></> : null}
+                {manual.venmoHandle && manual.zelle ? " or" : null}
+                {manual.zelle ? <> by Zelle to <strong className="text-ink">{manual.zelle}</strong></> : null}.
+              </p>
+              <p>
+                Put <strong className="text-ink">CallFlow – {org?.name ?? "your company name"}</strong> in the payment note. Changing plans below updates the amount; no card is stored here.
+              </p>
+            </div>
+          </div>
+        </Card>
+      ) : !stripeLive ? (
         <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="note">
           <FlaskConical className="mt-0.5 size-4 shrink-0" />
           <span>
@@ -38,7 +60,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
         <Card className="p-4">
           <p className="text-xs text-muted">Current plan</p>
           <p className="mt-1 text-xl font-semibold text-ink">
-            {plan.name} · ${plan.priceMonthly}/mo {sub?.isDemo ? <Badge tone="amber">Demo</Badge> : null}
+            {plan.name} · ${plan.priceMonthly}/mo {sub?.isDemo && !manualBilling ? <Badge tone="amber">Demo</Badge> : null}
           </p>
           <p className="text-xs text-muted">{sub ? `Period ${formatDate(sub.currentPeriodStart)} – ${formatDate(sub.currentPeriodEnd)}` : "No subscription"}</p>
         </Card>
@@ -79,7 +101,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                     </li>
                   ))}
                 </ul>
-                <CheckoutButton plan={key} current={isCurrent} highlight={Boolean(p.highlight)} demo={!stripeLive} />
+                <CheckoutButton plan={key} current={isCurrent} highlight={Boolean(p.highlight)} demo={!stripeLive && !manualBilling} manual={manualBilling} />
               </CardContent>
             </Card>
           );

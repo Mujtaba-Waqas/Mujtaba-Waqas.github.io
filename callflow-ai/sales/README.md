@@ -37,4 +37,4 @@ Everything you need to turn the demo into your first paying customers.
   - Include a simple way to opt out, and honor it quickly.
 - **Don't text or auto-dial prospects** without their permission. Texting marketing messages to people who never opted in can break the TCPA, and the fines are large. Email, phone calls you dial by hand, and in-person visits are fine.
 - **Never promise results you can't prove.** Say "designed to" or "in our pilot with X we saw…", not "guaranteed".
-- Not legal advice. Consider a short consult with a lawyer before signing your first contract.
+- Getting paid: see "Getting paid (Venmo)" in `05-pricing-and-pilot.md`.

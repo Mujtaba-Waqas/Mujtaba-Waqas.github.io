@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { checkoutAction, portalAction } from "@/app/(app)/settings-actions";
 import { Button } from "@/components/ui/button";
 
-export function CheckoutButton({ plan, current, highlight, demo }: { plan: "STARTER" | "GROWTH" | "PRO"; current: boolean; highlight: boolean; demo: boolean }) {
+export function CheckoutButton({ plan, current, highlight, demo, manual = false }: { plan: "STARTER" | "GROWTH" | "PRO"; current: boolean; highlight: boolean; demo: boolean; manual?: boolean }) {
   const [pending, start] = useTransition();
   const router = useRouter();
   if (current) return <Button variant="secondary" disabled>Current plan</Button>;
@@ -20,7 +20,7 @@ export function CheckoutButton({ plan, current, highlight, demo }: { plan: "STAR
           const r = await checkoutAction({ plan });
           if (!r.ok) return void toast.error(r.error);
           if (r.data!.simulated) {
-            toast.success("Plan switched (demo billing — no charge)");
+            toast.success(manual ? "Plan switched — send the new monthly amount using the payment details above" : "Plan switched (demo billing — no charge)");
             router.refresh();
           } else window.location.href = r.data!.url;
         })
