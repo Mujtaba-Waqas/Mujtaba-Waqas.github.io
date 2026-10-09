@@ -18,7 +18,13 @@ export function secureAction<S extends z.ZodTypeAny, T>(
   handler: (input: z.infer<S>, ctx: TenantContext, auth: AuthContext) => Promise<T | ActionResult<T>>,
 ) {
   return async (raw: z.input<S>): Promise<ActionResult<T>> => {
-    const auth = await getAuth();
+    let auth: AuthContext | null;
+    try {
+      auth = await getAuth();
+    } catch (err) {
+      console.error("[action] session lookup failed", err);
+      return { ok: false, error: "We couldn't reach the database. Please try again in a moment." };
+    }
     if (!auth) return { ok: false, error: "Your session has expired. Please sign in again." };
     const parsed = schema.safeParse(raw);
     if (!parsed.success) {

@@ -4,6 +4,8 @@ import { SCENARIOS } from "@/lib/simulator/scenarios";
 import { Simulator } from "./simulator";
 
 export const metadata = { title: "Call simulator" };
+// Each simulated turn runs several database writes; give it room on serverless hosts.
+export const maxDuration = 60;
 
 export default async function SimulatorPage() {
   await requireAuth("calls:simulate");

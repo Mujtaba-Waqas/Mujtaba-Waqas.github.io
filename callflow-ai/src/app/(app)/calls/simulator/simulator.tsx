@@ -26,6 +26,16 @@ type Records = {
   status: string;
 };
 
+/** Keeps the simulator on screen if the request itself fails (network drop, server timeout). */
+async function callServer<T extends { ok: boolean }>(fn: () => Promise<T>): Promise<T | { ok: false; error: string }> {
+  try {
+    return await fn();
+  } catch (err) {
+    console.error("[simulator] request failed", err);
+    return { ok: false, error: "The server didn't respond. Please try again." };
+  }
+}
+
 export function Simulator({ scenarios }: { scenarios: Scenario[] }) {
   const [scenarioId, setScenarioId] = useState(scenarios[0].id);
   const scenario = scenarios.find((s) => s.id === scenarioId) ?? null;
@@ -67,7 +77,7 @@ export function Simulator({ scenarios }: { scenarios: Scenario[] }) {
 
   const startCall = () =>
     start(async () => {
-      const r = await startSimulationAction({ callerNumber, clock });
+      const r = await callServer(() => startSimulationAction({ callerNumber, clock }));
       if (!r.ok) return void toast.error(r.error);
       setCallId(r.data!.callId);
       setState(r.data!.state);
@@ -80,8 +90,11 @@ export function Simulator({ scenarios }: { scenarios: Scenario[] }) {
       if (!callId || !utterance.trim()) return;
       setTurns((t) => [...t, { speaker: "CALLER", text: utterance }]);
       setText("");
-      const r = await simulationTurnAction({ callId, text: utterance });
+      const r = await callServer(() => simulationTurnAction({ callId, text: utterance }));
       if (!r.ok) {
+        // Let the caller retry the same line.
+        setTurns((t) => t.slice(0, -1));
+        setText(utterance);
         toast.error(r.error);
         return;
       }
